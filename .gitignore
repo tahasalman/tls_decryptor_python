@@ -4,3 +4,4 @@ test/*
 keys/*
 config.py
 __pycache__/*
+.*

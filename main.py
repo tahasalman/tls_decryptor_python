@@ -4,7 +4,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import config
 
-from decryptor import TLS_Decryptor
+from parser import TLSParser
+from decryptor import TLSDecryptor
 
 
 def read_private_key(filename, password=None):
@@ -42,6 +43,11 @@ def load_public_key():
 
 def PRF(secret, label, seed, length=48):
     seed = label + seed
+    print("\nSEED:\n")
+    print(seed)
+    print(seed.hex())
+    print(hexEscape(seed.hex()))
+    print(len(seed))
     result = b""
 
     h = hmac.HMAC(secret, hashes.SHA256(), backend=default_backend())
@@ -62,6 +68,15 @@ def PRF(secret, label, seed, length=48):
     # p2 = hmac.new(secret, a2+seed, hashlib.sha256)
     # return (p1 + p2[:16])
 
+def hexEscape(stream):
+    output = ""
+    escapeSeq = "\\x"
+
+    for i in range(0, len(stream) - 2, 2):
+        output += escapeSeq + stream[i:i+2]
+
+    return output
+
 def test():
     private_key = read_private_key("keys/privkey.pem")
     public_key = read_public_key("keys/pubkey.pem")
@@ -69,7 +84,7 @@ def test():
     client_random = config.CLIENT_RANDOM
     server_random = config.SERVER_RANDOM
 
-
+    print("Encrypted PRE MASTER SECRET")
     premaster_secret = config.ENCRYPTED_PREMASTER_SECRET
     print(len(premaster_secret))
 
@@ -77,14 +92,18 @@ def test():
         premaster_secret,
         padding.PKCS1v15()
     )
-
+    print("DECRYPTED PREMASTER SECRET")
     print(premaster_secret)
+    print(premaster_secret.hex())
+    print(hexEscape(premaster_secret.hex()))
     print(len(premaster_secret))
 
-    master_secret = PRF(premaster_secret,
-                        b"master secret",
-                        client_random + server_random)[:48]
+    master_secret = test_PRF(premaster_secret,48)[:48]
+
+    print("MASTER SECRET")
     print(master_secret)
+    print(master_secret.hex())
+    print(hexEscape(master_secret.hex()))
     print(len(master_secret))
 
     ## Generate key block to derive keys from
@@ -132,9 +151,29 @@ def test():
 
 
 
+def test_PRF(secret, length=48):
+    seed = config.EXTENDED_MASTER_SECRET_SEED
+    print("\nSEED:\n")
+    print(seed)
+    print(seed.hex())
+    print(hexEscape(seed.hex()))
+    print(len(seed))
+    result = b""
+
+    h = hmac.HMAC(secret, hashes.SHA256(), backend=default_backend())
+    a = seed
+    while len(result) < length:
+        h.update(a)
+        a = h.copy().finalize()
+        h.update(a+seed)
+        p = h.copy().finalize()
+        result += p
+    return result
+
+
 
 def main():
-    decryptor = TLS_Decryptor(
+    decryptor = TLSDecryptor(
         client_random=config.CLIENT_RANDOM,
         server_random=config.SERVER_RANDOM,
         enc_pre_master_secret=config.ENCRYPTED_PREMASTER_SECRET,
@@ -143,9 +182,37 @@ def main():
         iv_length=16
     )
 
-    decrypted_client_data = decryptor.decrypt_client_data(config.CLIENT_ENCRYPTED_APP_DATA)
+    decrypted_client_data = decryptor.decrypt_client_data(config.CLIENT_ENCRYPTED_DATA)
+
+    print("Attempt at decrypting client data: ")
     print(decrypted_client_data.hex())
-    print(len(decrypted_client_data))
+    print(f'Length: {len(decrypted_client_data)}\n\n')
+
+    decrypted_server_data = decryptor.decrypt_server_data(config.SERVER_ENCRYPTED_DATA)
+    print("Attempt at decrypting server data:")
+    print(decrypted_server_data.hex())
+    print(f'Length: {len(decrypted_server_data)}\n\n')
+
+    # print("Commencing Tests:\n")
+    #
+    # random_data = b"Please encrypt me! I feel sad :("
+    # print(f'This is our message: {random_data}')
+    # encrypted_data = decryptor.encrypt_client_data(random_data)
+    # print(f'This is our encrypted message: {encrypted_data}')
+    # decrypted_data = decryptor.decrypt_client_data(encrypted_data)
+    # print(f'This is our decrypted message: {decrypted_data}')
+
+def main2():
+    client_hello_packet = config.CLIENT_HELLO_PACKET
+    client_key_exchange_packet = config.CLIENT_KEY_EXCHANGE_PACKET
+
+    parser = TLSParser(client_hello_packet, 517, '127.1.0.1', '127.1.0.1', '53432', '8443')
+    parser.parse()
+
+    parser = TLSParser(client_key_exchange_packet, 517, '127.1.0.1', '127.1.0.1', '53432', '8443')
+    parser.parse()
+
+    print(TLSParser.HANDSHAKE_TABLE)
 
 if __name__ == "__main__":
-    main()
+    main2()

@@ -30,6 +30,8 @@ def hmac_sha256_prf(secret, label, seed, length):
     h = hmac.HMAC(secret, hashes.SHA256(), default_backend())
     a = seed
     while len(result) < length:
+        # print(f'AAAAA: {a}')
+        # print(f'SEEED: {seed}')
         h.update(a)
         a = h.copy().finalize()
         h.update(a + seed)
@@ -37,7 +39,8 @@ def hmac_sha256_prf(secret, label, seed, length):
         result += p
     return result
 
-class TLS_Decryptor:
+
+class TLSDecryptor:
     def __init__(self, client_random, server_random, enc_pre_master_secret,
                  mac_key_length, key_length, iv_length, private_key=None):
         self.client_random = client_random
@@ -84,11 +87,34 @@ class TLS_Decryptor:
 
         return
 
+    def encrypt_client_data(self, data):
+        cipher = Cipher(algorithm=algorithms.AES(self.client_write_key),
+                        mode=modes.CBC(self.client_write_IV),
+                        backend=default_backend())
+        encryptor = cipher.encryptor()
+        return encryptor.update(data) + encryptor.finalize()
+
     def decrypt_client_data(self, data):
         cipher = Cipher(algorithm=algorithms.AES(self.client_write_key),
                         mode=modes.CBC(self.client_write_IV),
                         backend=default_backend())
         decryptor = cipher.decryptor()
         return decryptor.update(data) + decryptor.finalize()
+
+    def encrypt_server_data(self, data):
+        cipher = Cipher(algorithm=algorithms.AES(self.server_write_key),
+                        mode=modes.CBC(self.server_write_IV),
+                        backend=default_backend())
+        encryptor = cipher.encryptor()
+        return encryptor.update(data) + encryptor.finalize()
+
+    def decrypt_server_data(self, data):
+        cipher = Cipher(algorithm=algorithms.AES(self.server_write_key),
+                        mode=modes.CBC(self.server_write_IV),
+                        backend=default_backend())
+        decryptor = cipher.decryptor()
+        return decryptor.update(data) + decryptor.finalize()
+
+
 
 
