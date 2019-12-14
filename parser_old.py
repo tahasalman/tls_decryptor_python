@@ -61,7 +61,9 @@ class TLSParser:
                     'cipher_suite': '',
                     'master_secret': '',
                     'client_write_key': '',
-                    'server_write_key': ''
+                    'server_write_key': '',
+                    'packets': b'',
+                    'session_hash': ''
                 }
         return
 
@@ -90,6 +92,8 @@ class TLSParser:
         return
 
     def parse_handshake_data(self, data):
+        TLSParser.HANDSHAKE_TABLE[self._get_key()]['packets'] += data
+
         tls_handshake_header = TLSHandshakeHeader(data)
         data = self._update_length_and_data(data, tls_handshake_header.bytes_used)
 
@@ -119,8 +123,6 @@ class TLSParser:
 
         elif handshake_type == 16:      # 0x10 client key exchange
             # extract encrypted pre-master secret
-            # encrypted_pms_length  = struct.unpack('! H', data[:2])[0]
-            # print(f'Encrypted Pre master secret length: {encrypted_pms_length}')
             data = self._update_length_and_data(data, 2)
             encrypted_pre_master_secret = data[:256]
             TLSParser.HANDSHAKE_TABLE[self._get_key()]['encrypted_pre_master_secret'] = encrypted_pre_master_secret

@@ -5,3 +5,5 @@ keys/*
 config.py
 __pycache__/*
 .*
+tls/__pycache__/*
+tls/test_data/__pycache__/*
