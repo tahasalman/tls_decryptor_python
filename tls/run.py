@@ -22,6 +22,10 @@ def main():
     key_exchange = get_packet('test_data/data/client_key_exchange')
     client_encrypted_data1 = get_packet('test_data/data/client_encrypted_data1')
     server_encrypted_data1 = get_packet('test_data/data/server_encrypted_data1')
+    client_encrypted_data2 = get_packet('test_data/data/client_encrypted_data2')
+    server_encrypted_data2 = get_packet('test_data/data/server_encrypted_data2')
+
+
 
 
     print("Starting Parser: ")
@@ -35,7 +39,10 @@ def main():
            CLIENT_IP, SERVER_IP, CLIENT_PORT, SERVER_PORT).parse()
     Parser(server_encrypted_data1, data_handler,
            SERVER_IP, CLIENT_IP, SERVER_PORT, CLIENT_PORT).parse()
-
+    Parser(client_encrypted_data2, data_handler,
+           CLIENT_IP, SERVER_IP, CLIENT_PORT, SERVER_PORT).parse()
+    Parser(server_encrypted_data2, data_handler,
+           SERVER_IP, CLIENT_IP, SERVER_PORT, CLIENT_PORT).parse()
 
     print("\nStarting Key Finder:")
     KeyFinder(data_handler, '../keys/privkey.pem',
@@ -51,7 +58,7 @@ def main():
     print("\nStarting Decryptor\n")
     decryptor = Decryptor(data_handler,
                           CLIENT_IP, SERVER_IP, CLIENT_PORT, SERVER_PORT)
-    output = decryptor.start()
+    output = decryptor.start('results/')
 
     for packet in output:
         print(f'packet {packet}\n')

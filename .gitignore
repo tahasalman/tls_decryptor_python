@@ -7,3 +7,4 @@ __pycache__/*
 .*
 tls/__pycache__/*
 tls/test_data/__pycache__/*
+tls/results/*

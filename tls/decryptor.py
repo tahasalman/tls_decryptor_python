@@ -9,8 +9,9 @@ class Decryptor:
         self.src_port = src_port
         self.dest_port = dest_port
 
-    def start(self):
-        output = []
+    def start(self, compare_results_dir_path=''):
+        after = []
+        before = []
         args = (self.src_ip, self.dest_ip, self.src_port, self.dest_port)
 
         packet_info = self.data_handler.get_next_from_app_data(*args)
@@ -31,7 +32,21 @@ class Decryptor:
 
             decryptor = cipher.decryptor()
             decrypted_packet = decryptor.update(packet_info['packet']) + decryptor.finalize()
-            output.append(decrypted_packet[len(iv):])       # Skip the number of bytes used by IV
+            before.append(packet_info['packet'])
+            after.append(decrypted_packet[len(iv):-20])       # Skip the number of bytes used by IV
             packet_info = self.data_handler.get_next_from_app_data(*args)
 
-        return output
+        if compare_results_dir_path:
+            with open(f'{compare_results_dir_path}/before.txt', 'a') as fp:
+                for num, packet in enumerate(before):
+                    #packet = packet.decode('utf-8')
+                    fp.write(f'Packet {num}:\n')
+                    fp.write(f'{packet}\n\n')
+
+            with open(f'{compare_results_dir_path}/after.txt', 'a') as fp:
+                for num, packet in enumerate(after):
+                    #packet = packet.decode('utf-8')
+                    fp.write(f'Packet {num}:\n')
+                    fp.write(f'{packet}\n\n')
+
+        return after
