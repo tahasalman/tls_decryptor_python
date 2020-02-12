@@ -27,7 +27,7 @@ def get_packet(file_path):
 
 
 def _test():
-    print(get_packet('client_hello'))
+    print(get_packet('data/client_hello'))
     pass
 
 
